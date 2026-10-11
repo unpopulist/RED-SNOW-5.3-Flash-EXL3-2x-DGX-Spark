@@ -1,0 +1,120 @@
+# RED-SNOW-5.3-FLASH on two DGX Sparks
+
+> **Point your agents at this file: [`AGENTS.md`](AGENTS.md).** It is a step-by-step setup, from two bare Sparks
+> to a validated server, written for an AI coding agent (and readable by people).
+
+This recipe serves [RED-SNOW-5.3-FLASH EXL3 SAGE 4.91 bpw](https://huggingface.co/vcruz305/RED-SNOW-5.3-FLASH-EXL3-SAGE-4.91bpw)
+on two NVIDIA DGX Sparks. The weights are split with tensor parallelism (TP=2), and the two GPUs exchange data over
+the Sparks' QSFP link (RoCE). The engine is a fork of [TensorFold](https://github.com/ashhart/TensorFold) that carries
+the port of this mixed-width EXL3 pack. The [DFlash2](https://huggingface.co/incoai/GLM-5.3-Flash-DFlash2) drafter
+supplies speculative drafts. Rank 0 serves an OpenAI-compatible API on port 8000.
+
+This repository has only the instructions and a thin wrapper (`run.sh`). The engine, its image build and its
+launcher live in the engine fork, under `deploy/redsnow`. Its `deploy/redsnow/README.md` is the full reference for
+every setting.
+
+**Model use.** RED-SNOW's [model card](https://huggingface.co/Blackfrost-AI/RED-SNOW-5.3-FLASH-BF16) asks that it be
+used only by experienced operators, in environments they own or are explicitly authorized to assess, with a human
+in control of scope, targets, credentials, tool execution and destructive actions. Read the card before you deploy.
+
+## Requirements
+
+**Hardware**
+
+- Two DGX Sparks (GB10, 128 GB unified memory), joined by a QSFP cable. Each end needs an IPv4 address on the
+  RoCE netdev (on DGX OS, typically `enp1s0f0np0`, RDMA device `rocep1s0f0`).
+- Nothing else running on either GPU. Each rank holds ~92 GiB of weights, and the launcher wants ~115 GiB
+  `MemAvailable` at start (it refuses below 110 GiB).
+- Disk: ~200 GB per node, as follows.
+  - Head: the 200 GB pack, plus ~100 GB while it writes rank 1's half.
+  - Worker: ~100 GB for rank 1's half.
+  - Both nodes: ~45 GB for the image and 2.2 GB for the drafter.
+
+**Software**
+
+- DGX OS (Ubuntu 24.04), an NVIDIA driver with CUDA 13 support, and Docker with the NVIDIA Container Toolkit and
+  `buildx`, on both nodes. `/dev/infiniband/uverbs0` must be present.
+- Passwordless ssh from the head to the worker, with the same `$HOME` path on both nodes.
+- `git`, `rsync`, the `hf` CLI (`pip install -U huggingface_hub`) and optionally `zstd`, on the head.
+
+## Quick start
+
+```bash
+# 1. the engine fork, at a release tag (on the head)
+git clone --branch redsnow-v1.0.0 https://github.com/unpopulist/TensorSnow <engine-dir>
+
+# 2. this recipe
+git clone https://github.com/unpopulist/RED-SNOW-5.3-Flash-EXL3-2x-DGX-Spark && cd RED-SNOW-5.3-Flash-EXL3-2x-DGX-Spark
+cp .env.example .env      # set ENGINE_DIR, HEAD_ADDR, WORKER_ADDR, WORKER_SSH
+
+# 3. the image, on both nodes
+./run.sh build
+
+# 4. model + drafter on both nodes (AGENTS.md, step 5), then:
+./run.sh check            # every launch check, starts nothing
+tmux new -s redsnow ./run.sh start
+./run.sh stop
+```
+
+Smoke test, once `start` prints `serving`:
+
+```bash
+curl -s http://<rank0-host>:8000/v1/chat/completions -H 'Content-Type: application/json' \
+  -d '{"model": "RED-SNOW-5.3-FLASH", "max_tokens": 64, "messages": [{"role": "user", "content": "Reply with OK."}]}'
+```
+
+## Configuration highlights
+
+These are the defaults. Change any of them in `.env`.
+
+| Setting | Default | |
+|---|---|---|
+| `CONTEXT` | 327680 | Prompt + reply window per request (320K tokens). |
+| `PARALLEL`, `POOL_STREAMS` | 4, 1 | Four concurrent requests decoded in shared rounds. They share one window's cache pool. |
+| `KV_DTYPE` | fp8 | FP8 latent cache. Use `bf16` for exact results with a shorter window. |
+| `MEMORY_RESERVE_GIB` | 14.5 | Memory left free at start, as headroom for peaks under load. |
+| `DRAFTER` | DFlash2 | Plus prompt-lookup ("copy") drafts. Drafts change speed, not replies. `none`: no DFlash2. |
+| `COMM` | roce | Small all-gathers as one-shot RDMA writes (b12x's RoCE transport), large ones over NCCL. |
+| `SERVED_NAME`, `PORT` | `RED-SNOW-5.3-FLASH`, 8000 | |
+
+## Measured performance
+
+Measured on two DGX Sparks (GB10) with the defaults: RED-SNOW 4.91 bpw, FP8 KV, DFlash2 + copy drafts, 4 streams
+sharing one cache pool, a 320K-token window per request and a 14.5 GiB memory reserve.
+
+| | |
+|---|---|
+| Decode, one request | prose ~37 tok/s, code ~60, JSON ~72, edit/quote ~95 |
+| Decode, four requests at once | ~68 tok/s aggregate |
+| Prefill | ~1,100–1,150 tok/s: 55K tokens in 46–49 s, 236K in 214 s, 306K in 282 s (needle found) |
+| Lowest free memory under load | ~6–9 GiB per node |
+| Startup | ~2.5 minutes to a ready API |
+
+For comparison, [justincasey/RED-SNOW-5.3-Flash-2x-DGX-Spark](https://github.com/justincasey/RED-SNOW-5.3-Flash-2x-DGX-Spark)
+publishes ~381 tok/s prefill for a 128K-token prompt with a single stream and a 128K window, on the same hardware
+and pack.
+
+## Known limits
+
+- **Tight startup memory margin at 320K.** The window fits with only a few tenths of a GiB to spare. The launcher
+  waits for free memory to settle before it starts. If the engine still refuses the window, wait a minute and retry,
+  or lower `CONTEXT`.
+- **Four streams share one pool.** A long request leaves less room for the others. When the pool is full, the
+  youngest stream is requeued and replayed.
+- **DFlash2 is non-commercial** (CC BY-NC-ND 4.0). For commercial use, serve with `DRAFTER=none` (slower) or obtain a
+  license from Inco AI.
+- The spill tier (kept prompts on disk) and the display-memory KV reservation are not enabled.
+
+## Next steps
+
+A 4-bit latent KV cache is planned. It would store symmetric int4 values with one fp16 scale per group of 32 (288
+bytes per latent row, against 528 for FP8), and keep the indexer keys in FP8. The goal is a ~580K-token shared window
+on two Sparks (against ~350K with FP8), for 256–512K-token contexts. The format was chosen by measuring real
+RED-SNOW cache rows: attention-output error was ~0.75%, against ~0.26% for FP8 and ~1.1% for a per-row int4 scale.
+The kernels are not built yet. Quality will be validated with needle and long-document tests before it becomes an
+option.
+
+## Credits and licenses
+
+This recipe's text and scripts are licensed under the Apache License 2.0 ([`LICENSE`](LICENSE)). The models and the
+engine keep their own licenses. Full attribution, including the DFlash2 citations, is in [`CREDITS.md`](CREDITS.md).
