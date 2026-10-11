@@ -90,10 +90,6 @@ sharing one cache pool, a 320K-token window per request and a 14.5 GiB memory re
 | Lowest free memory under load | ~6–9 GiB per node |
 | Startup | ~2.5 minutes to a ready API |
 
-For comparison, [justincasey/RED-SNOW-5.3-Flash-2x-DGX-Spark](https://github.com/justincasey/RED-SNOW-5.3-Flash-2x-DGX-Spark)
-publishes ~381 tok/s prefill for a 128K-token prompt with a single stream and a 128K window, on the same hardware
-and pack.
-
 ## Known limits
 
 - **Tight startup memory margin at 320K.** The window fits with only a few tenths of a GiB to spare. The launcher
@@ -175,8 +171,6 @@ license. No model weights are part of this repository: they are downloaded from 
   the tool-call handling come from its patch 0620.
 - **[ExLlamaV3](https://github.com/turboderp-org/exllamav3)** by turboderp (MIT License) defines the EXL3 format the
   pack is stored in, and provided the reference the port's layers were checked against.
-- **[justincasey/RED-SNOW-5.3-Flash-2x-DGX-Spark](https://github.com/justincasey/RED-SNOW-5.3-Flash-2x-DGX-Spark)**
-  (Apache License 2.0) published RED-SNOW measurements on the same hardware, which the README cites for comparison.
 
 ### Runtime
 
