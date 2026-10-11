@@ -171,6 +171,9 @@ license. No model weights are part of this repository: they are downloaded from 
   the tool-call handling come from its patch 0620.
 - **[ExLlamaV3](https://github.com/turboderp-org/exllamav3)** by turboderp (MIT License) defines the EXL3 format the
   pack is stored in, and provided the reference the port's layers were checked against.
+- **[justincasey/RED-SNOW-5.3-Flash-2x-DGX-Spark](https://github.com/justincasey/RED-SNOW-5.3-Flash-2x-DGX-Spark)**
+  (Apache License 2.0), another RED-SNOW recipe for two DGX Sparks: we compared this recipe against its published
+  measurements while building it. No code or settings from it are used here.
 
 ### Runtime
 
