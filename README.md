@@ -41,7 +41,7 @@ in control of scope, targets, credentials, tool execution and destructive action
 
 ```bash
 # 1. the engine fork, at a release tag (on the head)
-git clone --branch redsnow-v1.0.0 https://github.com/unpopulist/TensorSnow <engine-dir>
+git clone --branch redsnow-v1.1.0 https://github.com/unpopulist/TensorSnow <engine-dir>
 
 # 2. this recipe
 git clone https://github.com/unpopulist/RED-SNOW-5.3-Flash-EXL3-2x-DGX-Spark && cd RED-SNOW-5.3-Flash-EXL3-2x-DGX-Spark
@@ -90,40 +90,40 @@ sharing one cache pool, a 320K-token window per request and a 14.5 GiB memory re
 | Lowest free memory under load | ~6–9 GiB per node |
 | Startup | ~2.5 minutes to a ready API |
 
-### Benchmark: v1.0.0 vs the next release
+### Benchmark: v1.0.0 vs v1.1.0
 
-Both images were measured with the same defaults (320K window, 4 streams), one request at a time. The method is the
-benchmark suite from [justincasey/RED-SNOW-5.3-Flash-2x-DGX-Spark](https://github.com/justincasey/RED-SNOW-5.3-Flash-2x-DGX-Spark)
+Both releases were measured with their own defaults (320K window, 4 streams), one request at a time. The method is
+the benchmark suite from [justincasey/RED-SNOW-5.3-Flash-2x-DGX-Spark](https://github.com/justincasey/RED-SNOW-5.3-Flash-2x-DGX-Spark)
 (adapted there from [vcruz305's GLM-5.3 recipe](https://github.com/vcruz305/GLM-5.3-EXL3-DGX-Spark-recipe), MIT),
 run unchanged.
 
 - **Decode:** six prompts with thinking on, greedy, 512 tokens. Speed is the median of 3 drafted runs, counting
   the server's decode time only.
-- **Long prompt:** a 127,712-token Project Gutenberg book (Moby-Dick).
+- **Long prompt:** a 127,712-token Project Gutenberg book (Moby-Dick), sent cold (not drafted).
 - **Checks:** every drafted reply matched the undrafted reply token for token, and all checks passed (25/25).
 
-- **v1.0.0:** tag `redsnow-v1.0.0`, the current release.
-- **Next release:** adds MiaAI-Lab patches 0090, 0099–0107 and `FILL_ROWS=2048`. It is not published yet.
+v1.1.0 adds MiaAI-Lab patches 0090, 0099–0107 (the ones that apply to two Sparks) and `FILL_ROWS=2048`, with
+`EXL3_DEC_ORDER=2`.
 
-| Decode (tok/s) | v1.0.0 | Next release |
+| Decode (tok/s) | v1.0.0 | v1.1.0 |
 |---|---|---|
-| code | 46.2 | 46.6 |
-| prose | 35.9 | 36.3 |
-| math | 55.8 | 56.3 |
-| chat_explain | 38.2 | 38.7 |
-| chat_multiturn | 44.9 | 45.5 |
-| long_doc (3K-token prompt) | 41.7 | 42.9 |
-| **Mean, drafted** | **43.8** | **44.4** |
-| Mean, no drafting | 26.8 | 26.8 |
+| code | 46.2 | 47.0 |
+| prose | 35.9 | 36.4 |
+| math | 55.8 | 57.0 |
+| chat_explain | 38.2 | 38.9 |
+| chat_multiturn | 44.9 | 45.8 |
+| long_doc (3K-token prompt) | 41.7 | 43.1 |
+| **Mean, drafted** | **43.8** | **44.7** |
+| Mean, no drafting | 26.8 | 26.7 |
 
-| Long prompt (127,712 tokens) | v1.0.0 | Next release |
+| Long prompt (127,712 tokens) | v1.0.0 | v1.1.0 |
 |---|---|---|
-| Time to first token | 115.4 s | 113.6 s |
-| Prefill | 1,107 tok/s | 1,124 tok/s |
-| Decode after it, drafted / no drafting | 39.5 / 26.3 tok/s | 40.2 / 26.1 tok/s |
+| Time to first token | 115.4 s | 112.7 s |
+| Prefill | 1,107 tok/s | 1,133 tok/s |
+| Decode after it, drafted / no drafting | 39.5 / 26.3 tok/s | 40.3 / 26.4 tok/s |
 
-The next release gains little in this one-request benchmark. Most of its new patches speed up several streams
-decoding at long context, which this benchmark does not measure.
+v1.1.0 is about 2% faster in this one-request benchmark. Most of its new patches speed up several streams decoding
+at long context, which this benchmark does not measure.
 
 ## Known limits
 
@@ -197,7 +197,7 @@ license. No model weights are part of this repository: they are downloaded from 
   launcher design, the container image recipe and much more. The fork's `THIRD_PARTY_NOTICES.md` names the
   contributors of each ported patch: abhicnv007, Alexbob0, ezoushen, gabewillen, desy0305, johnwhited, meleesciony,
   m-naoki-m, ThomasWadeZ, BadAd84, wojo, jdecker76, mikolaj92 and others credited there.
-  - Being ported for the next release:
+  - Included in v1.1.0:
     - **[BadAd84](https://github.com/BadAd84)** wrote patches 0099 (tokenizing without the GIL), 0100 (draft
       prelaunch), 0101 (one-pass prompt selection), 0103 (decode matmuls without clusters), 0105 (prompt indexer
       scoring in CUDA) and 0107 (decode indexer), plus the `FILL_ROWS=2048` default.
@@ -215,7 +215,7 @@ license. No model weights are part of this repository: they are downloaded from 
 - **[justincasey/RED-SNOW-5.3-Flash-2x-DGX-Spark](https://github.com/justincasey/RED-SNOW-5.3-Flash-2x-DGX-Spark)**
   (Apache License 2.0), another RED-SNOW recipe for two DGX Sparks: we compared this recipe against its published
   measurements while building it, and its benchmark suite (`bench/`, adapted from vcruz305's, MIT) measured the
-  numbers in [Benchmark](#benchmark-v100-vs-the-next-release). No code or settings from it are part of this recipe.
+  numbers in [Benchmark](#benchmark-v100-vs-v110). No code or settings from it are part of this recipe.
 
 ### Runtime
 

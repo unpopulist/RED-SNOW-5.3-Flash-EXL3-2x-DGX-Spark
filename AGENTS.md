@@ -35,7 +35,7 @@ Ask the operator for these, or find them:
 
 | Placeholder | What | Example form |
 |---|---|---|
-| engine | `unpopulist/TensorSnow`, tag `redsnow-v1.0.0` | the engine fork (TensorFold + RED-SNOW) |
+| engine | `unpopulist/TensorSnow`, tag `redsnow-v1.1.0` | the engine fork (TensorFold + RED-SNOW) |
 | `<engine-dir>` | Where to clone the engine on the head (an absolute path the operator owns) | `/opt/redsnow-engine` |
 | `<worker-ssh>` | How the head reaches the worker by ssh | `user@worker-host` |
 | `<rank0-roce-ip>`, `<rank1-roce-ip>` | Each node's IPv4 address on the link | found in step 1 |
@@ -83,7 +83,7 @@ If the netdev or RDMA device names differ from `enp1s0f0np0` / `rocep1s0f0`, not
 ## Step 2: clone the engine fork (head)
 
 ```bash
-git clone --branch redsnow-v1.0.0 https://github.com/unpopulist/TensorSnow <engine-dir>
+git clone --branch redsnow-v1.1.0 https://github.com/unpopulist/TensorSnow <engine-dir>
 git -C <engine-dir> log -1 --oneline
 ```
 
