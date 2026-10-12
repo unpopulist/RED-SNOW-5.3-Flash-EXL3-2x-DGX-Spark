@@ -84,11 +84,46 @@ sharing one cache pool, a 320K-token window per request and a 14.5 GiB memory re
 
 | | |
 |---|---|
-| Decode, one request | prose ~37 tok/s, code ~60, JSON ~72, edit/quote ~95 |
+| Decode, one request (thinking off) | prose ~37 tok/s, code ~60, JSON ~72, edit/quote ~95 |
 | Decode, four requests at once | ~68 tok/s aggregate |
 | Prefill | ~1,100–1,150 tok/s: 55K tokens in 46–49 s, 236K in 214 s, 306K in 282 s (needle found) |
 | Lowest free memory under load | ~6–9 GiB per node |
 | Startup | ~2.5 minutes to a ready API |
+
+### Benchmark: v1.0.0 vs the next release
+
+Both images were measured with the same defaults (320K window, 4 streams), one request at a time. The method is the
+benchmark suite from [justincasey/RED-SNOW-5.3-Flash-2x-DGX-Spark](https://github.com/justincasey/RED-SNOW-5.3-Flash-2x-DGX-Spark)
+(adapted there from [vcruz305's GLM-5.3 recipe](https://github.com/vcruz305/GLM-5.3-EXL3-DGX-Spark-recipe), MIT),
+run unchanged.
+
+- **Decode:** six prompts with thinking on, greedy, 512 tokens. Speed is the median of 3 drafted runs, counting
+  the server's decode time only.
+- **Long prompt:** a 127,712-token Project Gutenberg book (Moby-Dick).
+- **Checks:** every drafted reply matched the undrafted reply token for token, and all checks passed (25/25).
+
+- **v1.0.0:** tag `redsnow-v1.0.0`, the current release.
+- **Next release:** adds MiaAI-Lab patches 0090, 0099–0107 and `FILL_ROWS=2048`. It is not published yet.
+
+| Decode (tok/s) | v1.0.0 | Next release |
+|---|---|---|
+| code | 46.2 | 46.6 |
+| prose | 35.9 | 36.3 |
+| math | 55.8 | 56.3 |
+| chat_explain | 38.2 | 38.7 |
+| chat_multiturn | 44.9 | 45.5 |
+| long_doc (3K-token prompt) | 41.7 | 42.9 |
+| **Mean, drafted** | **43.8** | **44.4** |
+| Mean, no drafting | 26.8 | 26.8 |
+
+| Long prompt (127,712 tokens) | v1.0.0 | Next release |
+|---|---|---|
+| Time to first token | 115.4 s | 113.6 s |
+| Prefill | 1,107 tok/s | 1,124 tok/s |
+| Decode after it, drafted / no drafting | 39.5 / 26.3 tok/s | 40.2 / 26.1 tok/s |
+
+The next release gains little in this one-request benchmark. Most of its new patches speed up several streams
+decoding at long context, which this benchmark does not measure.
 
 ## Known limits
 
@@ -179,7 +214,8 @@ license. No model weights are part of this repository: they are downloaded from 
   pack is stored in, and provided the reference the port's layers were checked against.
 - **[justincasey/RED-SNOW-5.3-Flash-2x-DGX-Spark](https://github.com/justincasey/RED-SNOW-5.3-Flash-2x-DGX-Spark)**
   (Apache License 2.0), another RED-SNOW recipe for two DGX Sparks: we compared this recipe against its published
-  measurements while building it. No code or settings from it are used here.
+  measurements while building it, and its benchmark suite (`bench/`, adapted from vcruz305's, MIT) measured the
+  numbers in [Benchmark](#benchmark-v100-vs-the-next-release). No code or settings from it are part of this recipe.
 
 ### Runtime
 
