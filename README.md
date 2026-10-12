@@ -162,6 +162,12 @@ license. No model weights are part of this repository: they are downloaded from 
   launcher design, the container image recipe and much more. The fork's `THIRD_PARTY_NOTICES.md` names the
   contributors of each ported patch: abhicnv007, Alexbob0, ezoushen, gabewillen, desy0305, johnwhited, meleesciony,
   m-naoki-m, ThomasWadeZ, BadAd84, wojo, jdecker76 and others credited there.
+  - Being ported for the next release:
+    - **[BadAd84](https://github.com/BadAd84)** wrote patches 0099 (tokenizing without the GIL), 0100 (draft
+      prelaunch), 0101 (one-pass prompt selection), 0103 (decode matmuls without clusters), 0105 (prompt indexer
+      scoring in CUDA) and 0107 (decode indexer), plus the `FILL_ROWS=2048` default.
+    - **Lukasz Raczylo ([lukaszraczylo](https://github.com/lukaszraczylo))** wrote patch 0090, the expert decode
+      launch order, in [PR #95](https://github.com/MiaAI-Lab/GLM-5.3-Flash-EXL3-2x-DGX-Sparks-TensorFold/pull/95).
 - **[b12x](https://github.com/local-inference-lab/b12x)** by local-inference-lab provides the "RoCEnante" one-shot
   RoCE all-gather transport (`COMM=roce`), under the Apache License 2.0. Its C proxy is used unchanged, and its
   GPU kernel is reimplemented in CUDA C++.
