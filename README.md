@@ -161,7 +161,7 @@ license. No model weights are part of this repository: they are downloaded from 
   that the fork ports. It covers multi-stream decoding, the FP8 cache, copy drafts, prefill and decode kernels, the
   launcher design, the container image recipe and much more. The fork's `THIRD_PARTY_NOTICES.md` names the
   contributors of each ported patch: abhicnv007, Alexbob0, ezoushen, gabewillen, desy0305, johnwhited, meleesciony,
-  m-naoki-m, ThomasWadeZ, BadAd84, wojo, jdecker76 and others credited there.
+  m-naoki-m, ThomasWadeZ, BadAd84, wojo, jdecker76, mikolaj92 and others credited there.
   - Being ported for the next release:
     - **[BadAd84](https://github.com/BadAd84)** wrote patches 0099 (tokenizing without the GIL), 0100 (draft
       prelaunch), 0101 (one-pass prompt selection), 0103 (decode matmuls without clusters), 0105 (prompt indexer
